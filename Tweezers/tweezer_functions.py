@@ -194,7 +194,7 @@ def scattering_position_dependent(omega_res, linewidths, omega_tweezer, intensit
                    linewidths[i] / (omega_res[i] + omega_tweezer))**2))
     scat = sum(s)
     return scat
-
+'''
 def pot_derivative_with_tweeze(x, omega_rf_axial, omega_tw_radial, tweezed_ion, displacement):
     """
     derivative of the potential energy of the ion chain, use this to find positions of ions in the trap
@@ -216,8 +216,114 @@ def pot_derivative_with_tweeze(x, omega_rf_axial, omega_tw_radial, tweezed_ion, 
             - sum([B / (abs(x[m] - x[n])**2) for n in range(m) if x[m] != x[n]])  # Avoid division by zero
             + sum([B / (abs(x[m] - x[n])**2) for n in range(m+1, N) if x[m] != x[n]])  # Avoid division by zero
             #MAKE ME A LOOP SO THE LIST MAKES SENSE
-            + C*(x[tweezed_ion] - displacement) if m == tweezed_ion else 0  # Only apply tweezer potential to the tweezed ion
+            + (C*(x[m] - displacement) if m == tweezed_ion else 0)  # Only apply tweezer potential to the tweezed ion
             for m in range(N)]
+'''
+
+'''
+def pot_derivative_with_tweeze(x, omega_rf_axial, omega_tw_radial, tweezed_ion, displacement):
+    """
+    derivative of the potential energy of the ion chain, use this to find positions of ions in the trap
+    This one is specifically for tweezing one ion in the chain
+    inputs:
+
+    x: list of ion positions
+    omega_rf_axial: the rf axial trapping frequency [Hz]
+    omega_tw_radial: the tweezer radial trapping frequency [Hz]
+    tweezed_ion: Ion number for the tweezed ion MAKE ME A LIST
+    displacement: distance between the tweezer beam center and position of the tweezed ion MAKE ME A LIST
+    """
+    N = len(x)
+    A = 1/2 * m * omega_rf_axial**2
+    B = (e**2) /(4 * pi * eps0)
+    C = 1/2 * m * omega_tw_radial**2
+    
+    return [A*(x[m]) 
+            - sum([B / (abs(x[m] - x[n])**2) for n in range(m) if x[m] != x[n]])  # Avoid division by zero
+            + sum([B / (abs(x[m] - x[n])**2) for n in range(m+1, N) if x[m] != x[n]])  # Avoid division by zero
+            #MAKE ME A LOOP SO THE LIST MAKES SENSE
+            + (C*(x[tweezed_ion] - displacement) if m == tweezed_ion else 0)  # Only apply tweezer potential to the tweezed ion
+            for m in range(N)]
+'''
+
+
+
+def pot_derivative_with_tweeze(x, omega_rf_axial, omega_tw_radial, tweezed_ion, displacement):
+    """
+    derivative of the potential energy of the ion chain, use this to find positions of ions in the trap
+    This one is specifically for tweezing one ion in the chain
+    inputs:
+
+    x: list of ion positions
+    omega_rf_axial: the rf axial trapping frequency [Hz]
+    omega_tw_radial: the tweezer radial trapping frequency [Hz]
+    tweezed_ion: Ion number for the tweezed ion MAKE ME A LIST
+    displacement: distance between the tweezer beam center and position of the tweezed ion MAKE ME A LIST
+    """
+    N = len(x)
+    A = m * omega_rf_axial**2
+    B = (e**2) /(4 * pi * eps0)
+    C = m * omega_tw_radial**2
+    
+    return [A*(x[m]) 
+            - sum([B / (abs(x[m] - x[n])**2) for n in range(m) if x[m] != x[n]])  # Avoid division by zero
+            + sum([B / (abs(x[m] - x[n])**2) for n in range(m+1, N) if x[m] != x[n]])  # Avoid division by zero
+            #MAKE ME A LOOP SO THE LIST MAKES SENSE
+            + (C*(x[tweezed_ion] - displacement) if m == tweezed_ion else 0)  # Only apply tweezer potential to the tweezed ion
+            for m in range(N)]
+
+
+
+
+
+
+
+'''
+def pot_derivative_dimensionless(
+    x,
+    omega_rf_axial,
+    omega_tw_radial,
+    tweezed_ion,
+    displacement
+):
+    N = len(x)
+
+    alpha = (omega_tw_radial / omega_rf_axial)**2
+
+    return [
+        x[m]
+        - sum(1 / (x[m] - x[n])**2 for n in range(m))
+        + sum(1 / (x[n] - x[m])**2 for n in range(m+1, N))
+        + (alpha * (x[m] - displacement) if m == tweezed_ion else 0)
+        for m in range(N)
+    ]
+
+
+
+def pot_derivative_SI(x, omega_rf_axial, omega_tw_radial, tweezed_ion, displacement):
+    N = len(x)
+
+    A = m * omega_rf_axial**2
+    B = (e**2) / (4 * np.pi * eps0)
+    C = m * omega_tw_radial**2
+
+    return [
+        A * x[m]
+        - sum(B / (x[m] - x[n])**2 for n in range(m))
+        + sum(B / (x[m] - x[n])**2 for n in range(m+1, N))
+        + (C * (x[m] - displacement) if tweezed_ion is not None and m == tweezed_ion else 0)
+        for m in range(N)
+    ]
+'''
+
+
+
+
+
+
+
+
+
 
 def pot_derivative_with_2tweeze(x, omega_rf_axial, omega_tw_radial, tweezed_ion1,tweezed_ion2, displacement1,displacement2):
     """
@@ -261,6 +367,9 @@ def ion_spacing(N,omega_a):
     for x, y in zip(ueq[0::], ueq[1::]):
         diff_list.append(y-x)
     return [ueq,diff_list]
+
+
+
 
 def ion_spacing_tweezers(potential_from_tweezers,ionspacing,omega_rf_axial,omega_tw_radial,tweezed_ion,displacement):
     ueq = fsolve(potential_from_tweezers,ionspacing[0],args = (omega_rf_axial,omega_tw_radial,tweezed_ion,displacement))
@@ -416,6 +525,43 @@ def eta(mode_structure,qubit_wavelength,N):
         eta.append([mode[1][i] * (2 * pi / qubit_wavelength) * np.sqrt(hbar / (2 * m * mode[0])) for i in range(N)])
     return eta
 
+'''
+def combined_frequencies(N,tweezed_ions,w_tweezer_r,w_tweezer_a,w_rf_r,w_rf_a):
+    
+    takes in rf and tweezer trap frequencies and adds together frequencies in quadruture
+    radial modes will be effected by either the radial and axial tweezer directions (in BladeRunner setup)
+    axial modes will be effected by only tweezer radial
+    
+    inputs:
+    N = number of ions
+    tweezed_ions = list of which ions are getting tweezed
+    w_tweezer_r = radial trapping frequency of tweezer [2*Pi x Hz]
+    w_tweezer_a = axial trapping frequency of tweezer [2*Pi x Hz]
+    w_rf_r = radial rf trapping frequency [2*Pi x Hz]
+    w_rf_a = axial rf trapping frequency [2*Pi x Hz]
+    
+    returns: array of potential combined trapping frequencies
+                [0] is radial rf and radial tweezer
+                [1] is radial rf and axial tweezer
+                [2] is axial rf and radial tweezer
+    
+    
+
+    omeg_tweezer_r = np.zeros(N)
+    omeg_tweezer_a = np.zeros(N)
+    omeg_tweezer_r[tweezed_ions] = w_tweezer_r
+    omeg_tweezer_a[tweezed_ions] = w_tweezer_a
+
+    omeg_rf_r = w_rf_r * np.ones(N) 
+    omeg_rf_a = w_rf_a * np.ones(N)
+
+    omega_combined_rr = np.sqrt(omeg_rf_r**2 + omeg_tweezer_r**2)
+    omega_combined_ra = np.sqrt(omeg_rf_r**2 + omeg_tweezer_a**2)
+    omega_combined_ar = np.sqrt(omeg_rf_a**2 + omeg_tweezer_r**2)
+    
+    return np.array([omega_combined_rr,omega_combined_ra,omega_combined_ar])
+'''
+
 def combined_frequencies(N,tweezed_ions,w_tweezer_r,w_tweezer_a,w_rf_r,w_rf_a):
     '''
     takes in rf and tweezer trap frequencies and adds together frequencies in quadruture
@@ -446,10 +592,12 @@ def combined_frequencies(N,tweezed_ions,w_tweezer_r,w_tweezer_a,w_rf_r,w_rf_a):
     omeg_rf_a = w_rf_a * np.ones(N)
 
     omega_combined_rr = np.sqrt(omeg_rf_r**2 + omeg_tweezer_r**2)
-    omega_combined_ra = np.sqrt(omeg_rf_r**2 + omeg_tweezer_a)
+    omega_combined_ra = np.sqrt(omeg_rf_r**2 + omeg_tweezer_a**2)
     omega_combined_ar = np.sqrt(omeg_rf_a**2 + omeg_tweezer_r**2)
+    omega_combined_aa = np.sqrt(omeg_rf_a**2 + omeg_tweezer_a**2)
     
-    return np.array([omega_combined_rr,omega_combined_ra,omega_combined_ar])
+    return np.array([omega_combined_rr,omega_combined_ra,omega_combined_ar,omega_combined_aa])
+
 
 def trapping_ratios(w_tweezer_r,w_tweezer_a,w_rf_r,w_rf_a):
     
@@ -508,6 +656,7 @@ def individual_freqs_to_mode_vectors_axial(N,tweezed_ions,w_tweezer_r,w_tweezer_
     
     """
     combined_freqs = combined_frequencies(N,tweezed_ions,w_tweezer_r,w_tweezer_a,w_rf_r,w_rf_a)
+    ### CHANGED THIS FROM [2] to [3] BECAUSE I ADDED IN THE COMBINED AA FREQUENCY IN THE COMBINED FREQUENCIES FUNCTION, CHECK THIS CAREFULLY ###
     omega_a_combined = combined_freqs[2]
     #omega_a = w_rf_a
     return mode_calc_a(m,omega_a_combined,ueq,N)
